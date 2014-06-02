@@ -62,67 +62,69 @@ struct ofxHttpResponse{
 };
 
 class ofxHttpUtils : public ofThread{
-
-	public:
-
-		ofxHttpUtils();
-		~ofxHttpUtils();
-		//-------------------------------
-		// non blocking functions
-
-		void addForm(ofxHttpForm form);
-		void addUrl(string url);
-
-		//-------------------------------
-		// blocking functions
-		ofxHttpResponse submitForm(ofxHttpForm form);
-		ofxHttpResponse getUrl(string url);
-		ofxHttpResponse postData(string url, const ofBuffer & data, string contentType="");
-
-        int getQueueLength();
-        void clearQueue();
-
-		//-------------------------------
-		// threading stuff
-		void threadedFunction();
-
-		//------------------------------
-		// events
-		ofEvent<ofxHttpResponse> newResponseEvent;
-
-        // other stuff-------------------
-        void setTimeoutSeconds(int t){
-            timeoutSeconds = t;
-        }
-        void setVerbose(bool v){
-            verbose = v;
-        }
-
-        void sendReceivedCookies();
-
-        void setBasicAuthentication(string user, string password);
-
-
-		void start();
-        void stop();
-
-    protected:
-
-		bool verbose;
-        int timeoutSeconds;
-        bool sendCookies;
-
-		//--------------------------------
-		// http utils
-		string generateUrl(ofxHttpForm & form);
-		ofxHttpResponse doPostForm(ofxHttpForm & form);
-
-		std::queue<ofxHttpForm> forms;
-		vector<Poco::Net::HTTPCookie> cookies;
-		Poco::Net::HTTPBasicCredentials auth;
-		Poco::Condition condition;
-
-		static bool initialized;
-
+    
+public:
+    
+    ofxHttpUtils();
+    ~ofxHttpUtils();
+    //-------------------------------
+    // non blocking functions
+    
+    void addForm(ofxHttpForm form);
+    void addUrl(string url);
+    
+    //-------------------------------
+    // blocking functions
+    ofxHttpResponse submitForm(ofxHttpForm form);
+    ofxHttpResponse getUrl(string url);
+    ofxHttpResponse postData(string url, const ofBuffer & data, string contentType="");
+    ofxHttpResponse putData(string url, const ofBuffer &data, string contentType="");
+    
+    
+    int getQueueLength();
+    void clearQueue();
+    
+    //-------------------------------
+    // threading stuff
+    void threadedFunction();
+    
+    //------------------------------
+    // events
+    ofEvent<ofxHttpResponse> newResponseEvent;
+    
+    // other stuff-------------------
+    void setTimeoutSeconds(int t){
+        timeoutSeconds = t;
+    }
+    void setVerbose(bool v){
+        verbose = v;
+    }
+    
+    void sendReceivedCookies();
+    
+    void setBasicAuthentication(string user, string password);
+    
+    
+    void start();
+    void stop();
+    
+protected:
+    
+    bool verbose;
+    int timeoutSeconds;
+    bool sendCookies;
+    
+    //--------------------------------
+    // http utils
+    string generateUrl(ofxHttpForm & form);
+    ofxHttpResponse doPostForm(ofxHttpForm & form);
+    
+    std::queue<ofxHttpForm> forms;
+    vector<Poco::Net::HTTPCookie> cookies;
+    Poco::Net::HTTPBasicCredentials auth;
+    Poco::Condition condition;
+    
+    static bool initialized;
+    
 };
 #endif

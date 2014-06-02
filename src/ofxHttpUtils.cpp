@@ -88,7 +88,13 @@ void ofxHttpUtils::threadedFunction(){
 			if(form.method==OFX_HTTP_POST){
 				response = doPostForm(form);
 				ofLogVerbose("ofxHttpUtils") << "(thread running) form submitted (post): "  << form.name;
-			}else{
+			}
+            else if(form.method==OFX_HTTP_PUT){
+            
+                
+                
+            }
+            else{
 				string url = generateUrl(form);
 				ofLogVerbose("ofxHttpUtils") << "form submitted (get):" << form.name;
 				response = getUrl(url);
@@ -204,6 +210,81 @@ ofxHttpResponse ofxHttpUtils::postData(string url, const ofBuffer & data,  strin
 
     }
 	return response;
+}
+// ----------------------------------------------------------------------
+
+ofxHttpResponse ofxHttpUtils::putData(string url, const ofBuffer &data, string contentType){
+    
+	ofxHttpResponse response;
+	try{
+		URI uri( url.c_str() );
+		std::string path(uri.getPathAndQuery());
+		if (path.empty()) path = "/";
+        
+		//HTTPClientSession session(uri.getHost(), uri.getPort());
+		HTTPRequest req(HTTPRequest::HTTP_PUT, path, HTTPMessage::HTTP_1_1);
+		if(auth.getUsername()!="") auth.authenticate(req);
+        
+		if(sendCookies){
+			for(unsigned i=0; i<cookies.size(); i++){
+				NameValueCollection reqCookies;
+				reqCookies.add(cookies[i].getName(),cookies[i].getValue());
+				req.setCookies(reqCookies);
+			}
+		}
+        
+		if(contentType!=""){
+			req.setContentType(contentType);
+		}
+        
+		req.setContentLength(data.size());
+        
+		HTTPResponse res;
+		ofPtr<HTTPSession> session;
+		istream * rs;
+		if(uri.getScheme()=="https"){
+			HTTPSClientSession * httpsSession = new HTTPSClientSession(uri.getHost(), uri.getPort());//,context);
+			httpsSession->setTimeout(Poco::Timespan(20,0));
+			httpsSession->sendRequest(req) << data;
+			rs = &httpsSession->receiveResponse(res);
+			session = ofPtr<HTTPSession>(httpsSession);
+		}else{
+			HTTPClientSession * httpSession = new HTTPClientSession(uri.getHost(), uri.getPort());
+			httpSession->setTimeout(Poco::Timespan(20,0));
+			httpSession->sendRequest(req) << data;
+			rs = &httpSession->receiveResponse(res);
+			session = ofPtr<HTTPSession>(httpSession);
+		}
+        
+		response = ofxHttpResponse(res, *rs, url);
+        
+		if(sendCookies){
+			cookies.insert(cookies.begin(),response.cookies.begin(),response.cookies.end());
+		}
+        
+		if(response.status>=300 && response.status<400){
+			Poco::URI uri(req.getURI());
+			uri.resolve(res.get("Location"));
+			response.location = uri.toString();
+		}
+        
+		ofNotifyEvent(newResponseEvent, response, this);
+	}catch (Exception& exc){
+        
+    	ofLogError("ofxHttpUtils") << "ofxHttpUtils error postData--";
+        
+        //ofNotifyEvent(notifyNewError, "time out", this);
+        
+        // for now print error, need to broadcast a response
+    	ofLogError("ofxHttpUtils") << exc.displayText();
+        response.status = -1;
+        response.reasonForStatus = exc.displayText();
+    	ofNotifyEvent(newResponseEvent, response, this);
+        
+    }
+	return response;
+    
+    
 }
 
 // ----------------------------------------------------------------------
@@ -363,7 +444,7 @@ ofxHttpResponse ofxHttpUtils::getUrl(string url){
 
 }
 
-// ----------------------------------------------------------------------
+//----------------------------------------------------------------------
 void ofxHttpUtils::addUrl(string url){
 	ofxHttpForm form;
 	form.action=url;
